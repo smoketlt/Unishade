@@ -1,0 +1,1089 @@
+#ifndef UI_EFFECT_INCLUDED
+#define UI_EFFECT_INCLUDED
+
+// Derived from UIEffect by mob-sakai.
+// Copyright 2017-2024 mob-sakai.
+// Licensed under the MIT License. See LICENSE.md in the source UIEffect package.
+
+#ifndef UNITY_PI
+#define UNITY_PI 3.14159265358979323846
+#endif
+
+#ifndef CANVAS_SHADERGRAPH
+uniform const int _SrcBlend;
+uniform const int _DstBlend;
+uniform const float4 _MainTex_TexelSize;
+#endif
+
+uniform const int _TextureBlendSource;
+uniform const int _TextureBlendLayout;
+uniform const sampler2D _BlendingMask;
+uniform const float4 _BlendingMask_ST;
+uniform const sampler2D _BlendingTextureG;
+uniform const float4 _BlendingTextureG_ST;
+uniform const float _BlendingTextureG_Opacity;
+uniform const int _BlendingTextureG_Mode;
+uniform const sampler2D _BlendingTextureB;
+uniform const float4 _BlendingTextureB_ST;
+uniform const float _BlendingTextureB_Opacity;
+uniform const int _BlendingTextureB_Mode;
+uniform const sampler2D _BlendingTextureWhite;
+uniform const float4 _BlendingTextureWhite_ST;
+uniform const float _BlendingTextureWhite_Opacity;
+uniform const int _BlendingTextureWhite_Mode;
+uniform const float _ToneIntensity;
+uniform const int _ColorFilter;
+uniform const half4 _ColorValue;
+uniform const float _ColorIntensity;
+uniform const int _ColorGlow;
+uniform const float _SamplingIntensity;
+uniform const float _SamplingWidth;
+uniform const float _SamplingScale;
+uniform const sampler2D _TransitionTex;
+uniform const float4 _TransitionTex_ST;
+uniform const float2 _TransitionTex_Speed;
+uniform const float _TransitionRate;
+uniform const int _TransitionReverse;
+uniform const int _TransitionColorFilter;
+uniform const half4 _TransitionColor;
+uniform const int _TransitionColorGlow;
+uniform const float _TransitionSoftness;
+uniform const float2 _TransitionRange;
+uniform const float _TransitionWidth;
+uniform const int _TransitionPatternReverse;
+uniform const float _TransitionAutoPlaySpeed;
+uniform const sampler2D _TransitionGradientTex;
+uniform const half4 _TargetColor;
+uniform const float _TargetRange;
+uniform const float _TargetSoftness;
+uniform const float _ShadowBlurIntensity;
+uniform const int _ShadowColorFilter;
+uniform const half4 _ShadowColor;
+uniform const int _ShadowColorGlow;
+uniform const float _EdgeWidth;
+uniform const float _EdgeShinyRate;
+uniform const float _EdgeShinyAutoPlaySpeed;
+uniform const float _EdgeShinyWidth;
+uniform const int _EdgeColorFilter;
+uniform const half4 _EdgeColor;
+uniform const int _EdgeColorGlow;
+uniform const int _PatternArea;
+uniform const float _DetailIntensity;
+uniform const float2 _DetailThreshold;
+uniform const half4 _DetailColor;
+uniform const sampler2D _DetailTex;
+uniform const float4 _DetailTex_ST;
+uniform const float2 _DetailTex_Speed;
+uniform const float _GradationIntensity;
+uniform const int _GradationColorFilter;
+uniform const half4 _GradationColor1;
+uniform const half4 _GradationColor2;
+uniform const half4 _GradationColor3;
+uniform const half4 _GradationColor4;
+uniform const sampler2D _GradationTex;
+uniform const float4 _GradationTex_ST;
+uniform const int _GradationRadial;
+uniform const float4x4 _RootViewMatrix;
+uniform const float4x4 _GradViewMatrix;
+uniform const float4x4 _MirrorRootViewMatrix;
+uniform const float4x4 _MirrorGradViewMatrix;
+uniform const float4x4 _CanvasToWorldMatrix;
+uniform const float _DitherIntensity;
+uniform const float _DitherScale;
+uniform const float2 _ScrollTextureSpeed;
+uniform const float _HandDrawnAmount;
+uniform const float _HandDrawnSpeed;
+uniform const float _DistortionIntensity;
+uniform const float2 _DistortionWave;
+uniform const float2 _DistortionAmount;
+uniform const float _DistortionSpeed;
+uniform const sampler2D _DistortionTex;
+uniform const float4 _DistortionTex_ST;
+uniform const float2 _DistortionRippleCenter;
+uniform const float _DistortionRippleFrequency;
+uniform const float _DistortionRippleStrength;
+uniform const float _DistortionRippleSpeed;
+uniform const float _HologramIntensity;
+uniform const float _HologramScanlineDensity;
+uniform const float _HologramScanlineStrength;
+uniform const float _HologramNoise;
+uniform const float _HologramRgbShift;
+uniform const float _HologramSpeed;
+uniform const half4 _HologramColor;
+uniform const int _HologramMode;
+uniform const float _GlitchIntensity;
+uniform const float _GlitchBlockSize;
+uniform const float _GlitchSpeed;
+uniform const int _GlitchMode;
+uniform const float _InnerGlowIntensity;
+uniform const float _InnerGlowSize;
+uniform const half4 _InnerGlowColor;
+uniform const float _OuterGlowIntensity;
+uniform const float _OuterGlowSize;
+uniform const float _OuterGlowSoftness;
+uniform const half4 _OuterGlowColor;
+
+#ifdef UNISHADE_LOCAL_UV
+#define UIEFFECT_TIME _UnishadeTime
+#else
+#define UIEFFECT_TIME _Time.y
+#endif
+
+// For performance reasons, limit the sampling of blur in TextMeshPro.
+#ifdef UIEFFECT_TEXTMESHPRO
+#ifdef SAMPLING_BLUR_MEDIUM
+        #undef SAMPLING_BLUR_MEDIUM
+        #define SAMPLING_BLUR_FAST 1
+#endif
+#ifdef SAMPLING_BLUR_DETAIL
+        #undef SAMPLING_BLUR_DETAIL
+        #define SAMPLING_BLUR_FAST 1
+#endif
+#endif
+
+#ifndef UIEFFECT_FRAG_STRUCT
+struct uieffect_v2f
+{
+};
+#define UIEFFECT_FRAG_STRUCT uieffect_v2f
+#endif
+
+#define TONE_NONE (!TONE_GRAYSCALE && !TONE_SEPIA && !TONE_NEGATIVE && !TONE_RETRO && !TONE_POSTERIZE)
+#define SAMPLING_NONE (!SAMPLING_BLUR_FAST && !SAMPLING_BLUR_MEDIUM && !SAMPLING_BLUR_DETAIL && !SAMPLING_PIXELATION && !SAMPLING_RGB_SHIFT && !SAMPLING_EDGE_LUMINANCE && !SAMPLING_EDGE_ALPHA)
+#define TRANSITION_NONE (!TRANSITION_FADE && !TRANSITION_CUTOFF && !TRANSITION_DISSOLVE && !TRANSITION_SHINY && !TRANSITION_MASK && !TRANSITION_MELT && !TRANSITION_BURN && !TRANSITION_PATTERN && !TRANSITION_BLAZE)
+#define TARGET_NONE (!TARGET_HUE && !TARGET_LUMINANCE)
+#define EDGE_NONE (!EDGE_PLAIN && !EDGE_SHINY)
+#define DETAIL_NONE (!DETAIL_MASKING && !DETAIL_MULTIPLY && !DETAIL_ADDITIVE && !DETAIL_SUBTRACTIVE && !DETAIL_REPLACE && !DETAIL_MULTIPLY_ADDITIVE)
+#define GRADATION_NONE (!GRADATION_GRADIENT && !GRADATION_RADIAL && !GRADATION_COLOR2 && !GRADATION_COLOR4)
+#define DISTORTION_NONE (!DISTORTION_WAVE && !DISTORTION_NOISE && !DISTORTION_TWIST && !DISTORTION_PINCH && !DISTORTION_FISHEYE && !DISTORTION_WATER_RIPPLE)
+#define DITHER_NONE (!DITHER_EFFECT)
+#define SCROLL_TEXTURE_NONE (!SCROLL_TEXTURE_EFFECT)
+#define HAND_DRAWN_NONE (!HAND_DRAWN_EFFECT)
+#define TEXTURE_BLEND_NONE (!TEXTURE_BLEND)
+
+#if TONE_NONE && !COLOR_FILTER && SAMPLING_NONE && TRANSITION_NONE && TARGET_NONE && EDGE_NONE && DETAIL_NONE && GRADATION_NONE && DISTORTION_NONE && DITHER_NONE && SCROLL_TEXTURE_NONE && HAND_DRAWN_NONE && !HOLOGRAM_EFFECT && !GLITCH_EFFECT && !INNER_GLOW_EFFECT && !OUTER_GLOW_EFFECT && TEXTURE_BLEND_NONE
+#define NO_UIEFFECT
+#endif
+
+#define UIEFFECT_UV_MASK(uv, uvMask) step(uvMask.x, uv.x) * step(uv.x, uvMask.z) * step(uvMask.y, uv.y) * step(uv.y, uvMask.w)
+#define UIEFFECT_SAMPLE(in, uv) uieffect_frag(in, uv)
+#define UIEFFECT_SAMPLE_CLAMP(in, uv, uvMask) uieffect_frag(in, uv) * UIEFFECT_UV_MASK(uv, uvMask)
+
+#if defined(CANVAS_SHADERGRAPH) || defined(UNISHADE_LOCAL_UV)
+#define TEX_SAMPLE_CLAMP(uv, uvMask) tex2D(_MainTex, uv) * UIEFFECT_UV_MASK(uv, uvMask)
+#else
+#define TEX_SAMPLE_CLAMP(uv, uvMask) tex2D(_MainTex, uv) * UIEFFECT_UV_MASK(uv, uvMask)
+#endif
+
+float4 object_to_world(float4 pos)
+{
+    #if UIEFFECT_EDITOR
+    return pos;
+    return mul(unity_ObjectToWorld, pos);
+    #else
+    return mul(_CanvasToWorldMatrix, pos);
+    return mul(_CanvasToWorldMatrix, mul(unity_ObjectToWorld, pos));
+    #endif
+}
+
+float2 texel_size()
+{
+    return _MainTex_TexelSize.xy * _SamplingScale;
+}
+
+// Renderer outlines must use the actual texture pixel size. Reusing texel_size()
+// here makes Edge expand with Sampling Scale and can turn the whole silhouette
+// into an outline when a large blur scale is selected.
+float2 edge_texel_size()
+{
+    return _MainTex_TexelSize.xy;
+}
+
+float transition_rate()
+{
+    return frac(_TransitionAutoPlaySpeed * UIEFFECT_TIME + _TransitionRate * 0.9999);
+}
+
+float3 rgb_to_hsv(float3 c)
+{
+    const float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    const float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
+    const float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
+    const float d = q.x - min(q.w, q.y);
+    const float e = 1.0e-4;
+    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float3 hsv_to_rgb(float3 c)
+{
+    const float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    const float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * lerp(K.xxx, saturate(p - K.xxx), c.y);
+}
+
+float inv_lerp(const float from, const float to, const float value)
+{
+    return saturate(max(0, value - from) / max(0.001, to - from));
+}
+
+float transition_alpha(float2 uvLocal)
+{
+    float2 uv;
+    #if TRANSITION_NONE
+    return 1;
+    #elif TRANSITION_PATTERN
+    {
+        const half scale = lerp(100, 1, _TransitionWidth);
+        const half2 time = half2(-transition_rate() * 2, 0);
+        uv = uvLocal * _TransitionTex_ST.xy * scale + _TransitionTex_ST.zw + time;
+    }
+    #else
+    {
+        uv = uvLocal * _TransitionTex_ST.xy + _TransitionTex_ST.zw;
+    }
+    #endif
+
+    const float alpha = tex2D(_TransitionTex, uv + UIEFFECT_TIME * _TransitionTex_Speed).a;
+    return _TransitionReverse ? 1 - alpha : alpha;
+}
+
+#if TEXTURE_BLEND
+half3 blend_texture_color(const half3 baseRgb, const half3 layerRgb, const int mode)
+{
+    if (mode == 1) // Multiply
+    {
+        return baseRgb * layerRgb;
+    }
+    if (mode == 2) // Additive
+    {
+        return saturate(baseRgb + layerRgb);
+    }
+    if (mode == 3) // Subtractive
+    {
+        return saturate(baseRgb - layerRgb);
+    }
+    if (mode == 4) // Screen
+    {
+        return 1 - (1 - baseRgb) * (1 - layerRgb);
+    }
+    if (mode == 5) // Overlay
+    {
+        return lerp(2 * baseRgb * layerRgb,
+                    1 - 2 * (1 - baseRgb) * (1 - layerRgb),
+                    step(0.5, baseRgb));
+    }
+
+    return layerRgb; // Normal
+}
+
+half4 blend_texture_layer(half4 baseColor, const half4 layerColor, const half mask, const float opacity, const int mode)
+{
+    const half layerAlpha = saturate(layerColor.a * mask * opacity);
+    if (layerAlpha <= 0.0001h) return baseColor;
+
+    const half baseAlpha = saturate(baseColor.a);
+    const half3 baseRgb = baseAlpha > 0.0001h ? baseColor.rgb / baseAlpha : 0;
+    const half3 blendedRgb = blend_texture_color(baseRgb, layerColor.rgb, mode);
+    const half3 mixedRgb = lerp(baseRgb, blendedRgb, layerAlpha);
+    const half outputAlpha = saturate(baseAlpha + layerAlpha * (1 - baseAlpha));
+
+    baseColor.rgb = mixedRgb * outputAlpha;
+    baseColor.a = outputAlpha;
+    return baseColor;
+}
+
+half4 apply_texture_blend(half4 color, const float2 uvLocal, const half3 vertexMask)
+{
+    const float2 maskUv = uvLocal * _BlendingMask_ST.xy + _BlendingMask_ST.zw;
+    const half3 maskColor = _TextureBlendSource == 1
+        ? tex2D(_BlendingMask, maskUv).rgb
+        : saturate(vertexMask);
+
+    if (_TextureBlendLayout == 0) // RGB mask: base + Green + Blue
+    {
+        if (_BlendingTextureG_Opacity > 0.0001)
+        {
+            const float2 uvG = uvLocal * _BlendingTextureG_ST.xy + _BlendingTextureG_ST.zw;
+            color = blend_texture_layer(color, tex2D(_BlendingTextureG, uvG), maskColor.g, _BlendingTextureG_Opacity, _BlendingTextureG_Mode);
+        }
+        if (_BlendingTextureB_Opacity > 0.0001)
+        {
+            const float2 uvB = uvLocal * _BlendingTextureB_ST.xy + _BlendingTextureB_ST.zw;
+            color = blend_texture_layer(color, tex2D(_BlendingTextureB, uvB), maskColor.b, _BlendingTextureB_Opacity, _BlendingTextureB_Mode);
+        }
+    }
+    else // Black & white mask: base + one layer
+    {
+        if (_BlendingTextureWhite_Opacity > 0.0001)
+        {
+            const float2 uvWhite = uvLocal * _BlendingTextureWhite_ST.xy + _BlendingTextureWhite_ST.zw;
+            color = blend_texture_layer(color, tex2D(_BlendingTextureWhite, uvWhite), maskColor.r, _BlendingTextureWhite_Opacity, _BlendingTextureWhite_Mode);
+        }
+    }
+
+    return color;
+}
+
+#endif // TEXTURE_BLEND
+
+half get_target_rate(const half3 color)
+{
+    #if TARGET_NONE
+    return 1;
+    #endif
+
+    if (1 <= _TargetRange) return 1;
+    if (_TargetRange <= 0) return 0;
+
+    half diff = 0;
+    #if TARGET_HUE // Target.Hue
+    {
+        const half value = rgb_to_hsv(color).x;
+        const half target = rgb_to_hsv(_TargetColor.rgb).x;
+        diff = abs(target - value);
+        diff = min(diff, 1 - diff);
+    }
+    #elif TARGET_LUMINANCE // Target.Luminance
+    {
+        const half value = Luminance(color);
+        const half target = Luminance(_TargetColor);
+        diff = abs(target - value);
+    }
+    #endif
+
+    return 1 - inv_lerp(_TargetRange * (1 - _TargetSoftness), _TargetRange, diff);
+}
+
+half4 apply_tone_filter(half4 color)
+{
+    #if TONE_GRAYSCALE // Tone.Grayscale
+    color.rgb = lerp(color.rgb, Luminance(color.rgb), _ToneIntensity);
+    #elif TONE_SEPIA // Tone.Sepia
+    color.rgb = lerp(color.rgb, Luminance(color.rgb) * half3(1.07, 0.74, 0.43), _ToneIntensity);
+    #elif TONE_NEGATIVE // Tone.Negative
+    color.rgb = lerp(color.rgb, (1 - color.rgb) * color.a, _ToneIntensity);
+    #elif TONE_RETRO // Tone.Retro
+    const half l = Luminance(color.rgb);
+    const half r0 = step(l, 0.25);
+    const half r1 = step(l, 0.5);
+    const half r2 = step(l, 0.75);
+    const half3 retro = half3(0.06, 0.22, 0.06) * r0 // 0.0-0.25: (15, 56, 15)
+        + half3(0.19, 0.38, 0.19) * (1 - r0) * r1 // 0.25-0.5: (48, 98, 48)
+        + half3(0.54, 0.67, 0.06) * (1 - r1) * r2 // 0.5-0.75: (139, 172, 15)
+        + half3(0.60, 0.74, 0.06) * (1 - r2); // 0.75-1.0: (155, 188, 15)
+    color.rgb = lerp(color.rgb, retro * color.a, _ToneIntensity);
+    #elif TONE_POSTERIZE // Tone.Posterize
+    const half3 hsv = rgb_to_hsv(color.rgb);
+    const float div = round(lerp(48, 4, _ToneIntensity) / 2) * 2;
+    color.rgb = hsv_to_rgb((floor(hsv * div) + 0.5) / div) * color.a;
+    #endif
+
+    return color;
+}
+
+half4 apply_color_filter(int mode, half4 inColor, half4 factor, float intensity, float glow)
+{
+    half4 color = inColor;
+    if (mode == 1) // Color.Multiply
+    {
+        color.rgb = color.rgb * factor.rgb;
+        color *= factor.a;
+    }
+    else if (mode == 2) // Color.Additive
+    {
+        color.rgb = color.rgb + factor.rgb * color.a * factor.a;
+    }
+    else if (mode == 3) // Color.Subtractive
+    {
+        color.rgb = color.rgb - factor.rgb * color.a * factor.a;
+    }
+    else if (mode == 4) // Color.Replace
+    {
+        color.rgb = factor.rgb * color.a;
+        color *= factor.a;
+    }
+    else if (mode == 5) // Color.MultiplyLuminance
+    {
+        color.rgb = (1 + Luminance(color.rgb)) * factor.rgb * factor.a / 2 * color.a;
+    }
+    else if (mode == 6) // Color.MultiplyAdditive
+    {
+        color.rgb = color.rgb * (1 + factor.rgb * factor.a);
+    }
+    else if (mode == 7) // Color.HsvModifier
+    {
+        const float3 hsv = rgb_to_hsv(color.rgb);
+        color.rgb = hsv_to_rgb(hsv + factor.rgb) * color.a * factor.a;
+        color.a = inColor.a * factor.a;
+    }
+    else if (mode == 8) // Color.Contrast
+    {
+        color.rgb = ((color.rgb - 0.5) * (factor.r + 1) + 0.5 + factor.g * 1.5) * color.a * factor.a;
+        color.a = color.a * factor.a;
+    }
+
+    if (0 < mode)
+    {
+        color = lerp(inColor, color, intensity);
+        color.a *= 1 - glow * intensity;
+    }
+
+    return color;
+}
+
+half4 apply_sampling_filter(UIEFFECT_FRAG_STRUCT IN, float2 uv, const float4 uvMask, const float isShadow)
+{
+    #if SAMPLING_BLUR_FAST || SAMPLING_BLUR_MEDIUM || SAMPLING_BLUR_DETAIL
+    {
+        float intensity = 0 < isShadow ? _ShadowBlurIntensity : _SamplingIntensity;
+        if (0 < intensity)
+        {
+    #if SAMPLING_BLUR_FAST
+            const int KERNEL_SIZE = 5;
+            const float KERNEL_[5] = {0.2486, 0.7046, 1.0, 0.7046, 0.2486};
+    #elif SAMPLING_BLUR_MEDIUM
+            const int KERNEL_SIZE = 9;
+            const float KERNEL_[9] = { 0.0438, 0.1719, 0.4566, 0.8204, 1.0, 0.8204, 0.4566, 0.1719, 0.0438};
+    #elif SAMPLING_BLUR_DETAIL
+            const int KERNEL_SIZE = 13;
+            const float KERNEL_[13] = { 0.0438, 0.1138, 0.2486, 0.4566, 0.7046, 0.9141, 1.0, 0.9141, 0.7046, 0.4566, 0.2486, 0.1138, 0.0438};
+    #endif
+
+            float4 o = 0;
+            float sum = 0;
+            float2 shift = 0;
+            const half2 blur = texel_size() * intensity * 2;
+            for (int x = 0; x < KERNEL_SIZE; x++)
+            {
+                shift.x = blur.x * (float(x) - KERNEL_SIZE / 2);
+                for (int y = 0; y < KERNEL_SIZE; y++)
+                {
+                    shift.y = blur.y * (float(y) - KERNEL_SIZE / 2);
+                    const float2 bluredUv = uv + shift;
+                    const float weight = KERNEL_[x] * KERNEL_[y]
+                        * step(uvMask.x, bluredUv.x) * step(bluredUv.x, uvMask.z)
+                        * step(uvMask.y, bluredUv.y) * step(bluredUv.y, uvMask.w);
+                    o += UIEFFECT_SAMPLE(IN, bluredUv) * weight;
+                    sum += weight;
+                }
+            }
+
+            return 0 < sum ? o / sum : 0;
+        }
+    }
+    #endif
+
+    return UIEFFECT_SAMPLE_CLAMP(IN, uv, uvMask);
+}
+
+float2 move_transition_filter(const float4 uvMask, const float alpha)
+{
+    // Transition.Melt/Burn
+    #if !TRANSITION_MELT && !TRANSITION_BURN
+    {
+        return 0;
+    }
+    #endif
+
+    const float factor = alpha - transition_rate() * (1 + _TransitionWidth * 1.5) + _TransitionWidth;
+    const float band = max(0, _TransitionWidth - factor);
+
+    #if TRANSITION_MELT
+    {
+        return float2(0, +band * band * (uvMask.w - uvMask.y) / max(0.01, _TransitionWidth));
+    }
+    #elif TRANSITION_BURN
+    {
+        return float2(0, -band * band * (uvMask.w - uvMask.y) / max(0.01, _TransitionWidth));
+    }
+    #endif
+
+    return 0;
+}
+
+half4 apply_transition_filter(half4 color, const float alpha, const float2 uvLocal, float edgeFactor)
+{
+    #if TRANSITION_FADE  // Transition.Fade
+    {
+        color *= saturate(alpha + 1 - transition_rate() * 2);
+    }
+    #elif TRANSITION_CUTOFF  // Transition.Cutoff
+    {
+        color *= step(0.001, alpha - transition_rate());
+    }
+    #elif TRANSITION_PATTERN  // Transition.Pattern
+    {
+        const half4 patternColor = apply_color_filter(_TransitionColorFilter, half4(color.rgb, 1), half4(_TransitionColor.rgb * color.a, 1), _TransitionColor.a, _TransitionColorGlow);
+        float isPattern = min(inv_lerp(_TransitionRange.x, _TransitionRange.y, uvLocal.x), 0.995) < (_TransitionPatternReverse ? alpha : 1 - alpha);
+        isPattern = _TransitionPatternReverse ? isPattern : 1 - isPattern;
+        const float patternFactor = _PatternArea == 0 ? 1 : _PatternArea == 1 ? 1 - edgeFactor : edgeFactor;
+        color.rgb = lerp(color.rgb, patternColor.rgb, patternFactor * isPattern);
+    }
+    // Transition.Dissolve/Shiny/ShinyOnly/Melt
+    #elif TRANSITION_DISSOLVE || TRANSITION_SHINY || TRANSITION_MASK || TRANSITION_MELT || TRANSITION_BURN
+    {
+        const float factor = alpha - transition_rate() * (1 + _TransitionWidth) + _TransitionWidth;
+        const float softness = max(0.0001, _TransitionWidth * _TransitionSoftness);
+        const half bandLerp = saturate((_TransitionWidth - factor) * 2 / softness);
+        const half softLerp = saturate(factor * 2 / softness);
+        half4 bandColor = apply_color_filter(_TransitionColorFilter, half4(color.rgb, 1),
+                                             half4(_TransitionColor.rgb, 1), _TransitionColor.a, _TransitionColorGlow);
+        bandColor *= color.a;
+
+        #if TRANSITION_MELT
+        {
+            color = lerp(color, bandColor, bandLerp);
+            return color;
+        }
+        #elif TRANSITION_BURN
+        {
+            color = lerp(color, bandColor, bandLerp * 1.25);
+            color.a *= 1 - inv_lerp(0.85, 1.0, bandLerp * 1.25);
+            color.rgb *= (1 - inv_lerp(0.85, 1.0, bandLerp * 1.3)) * color.a;
+            return color;
+        }
+        #elif TRANSITION_SHINY && UIEFFECT_TEXTMESHPRO
+        {
+            color.rgb *= color.a;
+        }
+        #endif
+
+        half lerpFactor = bandLerp * softLerp;
+        #if TRANSITION_SHINY
+        {
+            lerpFactor *= lerpFactor;
+        }
+        #endif
+
+        color = lerp(color, bandColor, lerpFactor);
+
+        #if TRANSITION_DISSOLVE
+        {
+            color *= softLerp;
+        }
+        #elif TRANSITION_MASK
+        {
+            color *= bandLerp * softLerp;
+        }
+        #endif
+    }
+    // Transition.Blaze
+    #elif TRANSITION_BLAZE
+    {
+        const float maxValue = transition_rate();
+        const float minValue = maxValue - _TransitionWidth / 2;
+        const float rate = 1 - inv_lerp(minValue, maxValue, alpha * (1 - _TransitionWidth / 2));
+        const float4 gradColor = tex2D(_TransitionGradientTex, float2(rate, 0.5));
+        const float4 burntColor = gradColor * color;
+        const float4 flameColor = float4(gradColor.rgb, gradColor.a * color.a);
+
+        // 0-0.5: burnt color, 0.5-1: flame color
+        color = lerp(burntColor, flameColor, step(0.5, rate));
+        color.rgb *= color.a;
+    }
+    #endif
+
+    return color;
+}
+
+half4 apply_gradation_filter(const half4 inColor, const float2 uvGrad)
+{
+    const float2 uv = uvGrad * _GradationTex_ST.x + _GradationTex_ST.z;
+    const float uvRad = length((uvGrad - float2(0.5, 0.5)) * 2 * _GradationTex_ST.x) + _GradationTex_ST.z;
+    half4 factor = inColor;
+
+    #if GRADATION_GRADIENT // Gradation.Gradient
+    {
+        factor = tex2D(_GradationTex, float2(_GradationRadial ? uvRad : uv.x, 0.5));
+    }
+    #elif GRADATION_COLOR2 // Gradation.Color2
+    {
+        factor = lerp(_GradationColor1, _GradationColor2, _GradationRadial ? saturate(uvRad) : saturate(uv.x));
+    }
+    #elif GRADATION_COLOR4 // Gradation.Color4
+    {
+        factor = lerp(
+            lerp(_GradationColor3, _GradationColor4, saturate(uv.x)),
+            lerp(_GradationColor1, _GradationColor2, saturate(uv.x)),
+            saturate(uv.y));
+    }
+    #else
+    {
+        return inColor;
+    }
+    #endif
+
+    return apply_color_filter(_GradationColorFilter, inColor, factor, _GradationIntensity, 0);
+}
+
+half4 apply_detail_filter(half4 color, float2 uvLocal)
+{
+    const half4 inColor = color;
+    const float2 uv = uvLocal * _DetailTex_ST.xy + _DetailTex_ST.zw + UIEFFECT_TIME * _DetailTex_Speed;
+    half4 detail = tex2D(_DetailTex, uv);
+    #if DETAIL_MASKING // Detail.Masking
+    {
+        // UIEffect masks are traditionally stored in alpha, but renderer users
+        // commonly provide an opaque black/white texture where alpha is 1.
+        // In that case use the texture luminance; keep alpha for transparent
+        // masks such as Detail-Soft Masking.
+        const half sourceMask = detail.a > 0.999h ? Luminance(detail.rgb) : detail.a;
+        const half maskFactor = inv_lerp(_DetailThreshold.x, _DetailThreshold.y, sourceMask);
+        color *= lerp(1, maskFactor, saturate(_DetailIntensity));
+    }
+    #elif DETAIL_MULTIPLY // Detail.Multiply
+    {
+        detail *= _DetailColor;
+        color.rgb *= detail.rgb;
+        color = lerp(inColor, color, _DetailIntensity * detail.a);
+    }
+    #elif DETAIL_ADDITIVE // Detail.Additive
+    {
+        detail *= _DetailColor;
+        color.rgb += detail.rgb * color.a;
+        color = lerp(inColor, color, _DetailIntensity * detail.a);
+    }
+    #elif DETAIL_SUBTRACTIVE // Detail.Subtractive
+    {
+        detail *= _DetailColor;
+        color.rgb -= detail.rgb * color.a;
+        color = lerp(inColor, color, _DetailIntensity * detail.a);
+    }
+    #elif DETAIL_REPLACE // Detail.Replace
+    {
+        detail *= _DetailColor;
+        color.rgb = detail.rgb * color.a;
+        color = lerp(inColor, color, _DetailIntensity * detail.a);
+    }
+    #elif DETAIL_MULTIPLY_ADDITIVE // Detail.MultiplyAdditive
+    {
+        detail *= _DetailColor;
+        color.rgb *= (1 + detail.rgb);
+        color = lerp(inColor, color, _DetailIntensity * detail.a);
+    }
+    #else
+    {
+        return color;
+    }
+    #endif
+
+    return color;
+}
+
+half to_value(float4 c)
+{
+    #if SAMPLING_EDGE_LUMINANCE
+    return Luminance(c) * c.a;
+    #elif SAMPLING_EDGE_ALPHA
+    return c.a;
+    #endif
+    return 0;
+}
+
+float edge(float2 uv, const float4 uvMask, float width)
+{
+    #if EDGE_PLAIN || EDGE_SHINY
+    const float2 d = edge_texel_size() * lerp(1, 20, width);
+    float e = 1.0;
+
+    // Minimum alpha around the current pixel (12 neighbors)
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(1.0, 0.0)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(0.866025, 0.5)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(0.5, 0.866025)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(0.0, 1.0)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(-0.5, 0.866025)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(-0.866025, 0.5)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(-1.0, 0.0)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(-0.866025, -0.5)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(-0.5, -0.866025)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(0.0, -1.0)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(0.5, -0.866025)), uvMask)).a);
+    e = min(e, (TEX_SAMPLE_CLAMP((uv + d * float2(0.866025, -0.5)), uvMask)).a);
+
+    return 1 - inv_lerp(0.15, 0.3, e);
+    #else
+    return 0;
+    #endif
+}
+
+float is_edge_shiny(const float2 uvLocal)
+{
+    #if EDGE_SHINY
+    const float deg = atan2(uvLocal.y - 0.5, uvLocal.x - 0.5) / UNITY_PI;
+    return frac(_EdgeShinyRate + UIEFFECT_TIME * _EdgeShinyAutoPlaySpeed + deg) < _EdgeShinyWidth;
+    #else
+    return 1;
+    #endif
+}
+
+float unishade_hash(const float2 value)
+{
+    return frac(sin(dot(value, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+float2 unishade_rotate(const float2 value, const float angle)
+{
+    const float s = sin(angle);
+    const float c = cos(angle);
+    return float2(value.x * c - value.y * s, value.x * s + value.y * c);
+}
+
+float2 apply_scroll_texture(float2 uv, const float4 uvMask)
+{
+    #if SCROLL_TEXTURE_EFFECT
+    const float2 uvSpan = max(uvMask.zw - uvMask.xy, float2(0.0001, 0.0001));
+    float2 localUv = (uv - uvMask.xy) / uvSpan;
+    localUv = frac(localUv + UIEFFECT_TIME * _ScrollTextureSpeed);
+    return uvMask.xy + localUv * uvSpan;
+    #else
+    return uv;
+    #endif
+}
+
+float2 apply_hand_drawn(float2 uv, const float4 uvMask)
+{
+    #if HAND_DRAWN_EFFECT
+    const float2 uvSpan = max(uvMask.zw - uvMask.xy, float2(0.0001, 0.0001));
+    float2 localUv = (uv - uvMask.xy) / uvSpan;
+    const float speed = max(_HandDrawnSpeed, 0.001);
+    const float drawnSpeed = (floor(frac(UIEFFECT_TIME) * 20 * speed) / speed) * speed;
+    float2 uvCopy;
+    uvCopy.x = sin((localUv.x * _HandDrawnAmount + drawnSpeed) * 4);
+    uvCopy.y = cos((localUv.y * _HandDrawnAmount + drawnSpeed) * 4);
+    localUv += uvCopy * (0.0005 * _HandDrawnAmount);
+    return uvMask.xy + localUv * uvSpan;
+    #else
+    return uv;
+    #endif
+}
+
+half4 apply_dither_filter(half4 color, const float4 screenPosition)
+{
+    #if DITHER_EFFECT
+    static const half DITHER_THRESHOLDS[16] =
+    {
+        0.0h, 0.5h, 0.125h, 0.625h,
+        0.75h, 0.25h, 0.875h, 0.375h,
+        0.1875h, 0.6875h, 0.0625h, 0.5625h,
+        0.9375h, 0.4375h, 0.8125h, 0.3125h
+    };
+    float2 screenUv = screenPosition.xy / max(screenPosition.w, 0.0001);
+    screenUv = screenUv * 0.5 + 0.5;
+    const float2 pixelPosition = screenUv * _ScreenParams.xy * max(_DitherScale, 0.01);
+    const uint index = (uint(pixelPosition.x) & 3) * 4 + (uint(pixelPosition.y) & 3);
+    const half originalAlpha = color.a;
+    color.a = saturate(color.a - DITHER_THRESHOLDS[index] * saturate(_DitherIntensity));
+    color.rgb *= originalAlpha > 0.0001h ? color.a / originalAlpha : 0;
+    #endif
+    return color;
+}
+
+float2 apply_distortion_filter(float2 uv, const float4 uvMask, const float2 uvLocal)
+{
+    #if DISTORTION_NONE
+    return uv;
+    #else
+    const float2 uvSpan = max(uvMask.zw - uvMask.xy, float2(0.0001, 0.0001));
+    const float intensity = saturate(_DistortionIntensity);
+    float2 offset = 0;
+
+    #if DISTORTION_WAVE
+    {
+        const float time = UIEFFECT_TIME * _DistortionSpeed;
+        offset = float2(
+            sin((uvLocal.y * _DistortionWave.x + time) * UNITY_PI * 2) * _DistortionAmount.x,
+            cos((uvLocal.x * _DistortionWave.y + time) * UNITY_PI * 2) * _DistortionAmount.y);
+    }
+    #elif DISTORTION_NOISE
+    {
+        const float2 noiseUv = uvLocal * _DistortionTex_ST.xy + _DistortionTex_ST.zw
+            + UIEFFECT_TIME * _DistortionSpeed * 0.1;
+        const half4 noiseSample = tex2D(_DistortionTex, noiseUv);
+        offset = (noiseSample.rg - 0.5) * _DistortionAmount * 2 * noiseSample.a;
+    }
+    #elif DISTORTION_TWIST
+    {
+        const float2 centered = uvLocal - 0.5;
+        const float radius = saturate(length(centered) * 1.4142);
+        const float angle = (1 - radius) * _DistortionAmount.x * intensity * UNITY_PI * 2;
+        offset = unishade_rotate(centered, angle) + 0.5 - uvLocal;
+    }
+    #elif DISTORTION_PINCH
+    {
+        const float2 centered = uvLocal - 0.5;
+        const float radius = saturate(length(centered) * 1.4142);
+        const float factor = 1 + _DistortionAmount.x * intensity * (1 - radius);
+        offset = centered * factor + 0.5 - uvLocal;
+    }
+    #elif DISTORTION_FISHEYE
+    {
+        const float2 centered = uvLocal - 0.5;
+        const float radius = saturate(length(centered) * 1.4142);
+        const float factor = 1 + _DistortionAmount.x * intensity * radius * radius;
+        offset = centered * factor + 0.5 - uvLocal;
+    }
+    #elif DISTORTION_WATER_RIPPLE
+    {
+        const float2 centered = uvLocal - _DistortionRippleCenter;
+        const float radius = length(centered);
+        const float2 direction = centered / max(radius, 0.0001);
+        const float phase = radius * _DistortionRippleFrequency
+            - UIEFFECT_TIME * _DistortionRippleSpeed * UNITY_PI * 2;
+        offset = direction * sin(phase) * _DistortionRippleStrength;
+    }
+    #endif
+
+    uv += offset * uvSpan * intensity;
+    return uv;
+    #endif
+}
+
+float2 apply_glitch_filter(float2 uv, const float4 uvMask, const float2 uvLocal)
+{
+    #if GLITCH_EFFECT
+    const float time = floor(UIEFFECT_TIME * _GlitchSpeed * 12);
+    const float blockSize = max(0.005, _GlitchBlockSize);
+    const float block = floor(uvLocal.y / blockSize);
+    const float blockNoise = unishade_hash(float2(block, time));
+    const float lineNoise = unishade_hash(float2(floor(uvLocal.y * 128), time * 0.37 + 17));
+    const float blocksEnabled = (_GlitchMode == 1 || _GlitchMode == 3) ? 1 : 0;
+    const float linesEnabled = (_GlitchMode == 2 || _GlitchMode == 3) ? 1 : 0;
+    const float active = step(0.58, blockNoise) * blocksEnabled;
+    const float lineActive = step(0.72, lineNoise) * linesEnabled;
+    const float shift = ((unishade_hash(float2(block, time + 31)) - 0.5) * active
+        + (unishade_hash(float2(block, time + 71)) - 0.5) * lineActive * 0.35)
+        * _GlitchIntensity * 0.12;
+    uv.x += shift * max(uvMask.z - uvMask.x, 0.0001);
+    #endif
+    return uv;
+}
+
+float unishade_sample_alpha(const float2 uv, const float4 uvMask)
+{
+    const float inside = step(uvMask.x, uv.x) * step(uv.x, uvMask.z)
+        * step(uvMask.y, uv.y) * step(uv.y, uvMask.w);
+    return tex2D(_MainTex, uv).a * inside;
+}
+
+half4 apply_hologram_filter(half4 color, UIEFFECT_FRAG_STRUCT IN, const float2 uv,
+                            const float4 uvMask, const float2 uvLocal)
+{
+    #if HOLOGRAM_EFFECT
+    const float time = UIEFFECT_TIME * _HologramSpeed;
+    const float scan = 0.5 + 0.5 * sin((uvLocal.y * _HologramScanlineDensity + time) * UNITY_PI * 2);
+    const float scanFactor = lerp(1, lerp(1 - _HologramScanlineStrength, 1 + _HologramScanlineStrength, scan), _HologramIntensity);
+    const float noise = unishade_hash(floor(uvLocal * float2(64, 128)) + floor(time * 8));
+    const float noiseAmount = _HologramMode >= 2 ? _HologramNoise : 0;
+    const float rgbAmount = _HologramMode >= 2 ? _HologramRgbShift : 0;
+    const float flicker = lerp(1, lerp(0.7, 1.15, noise), noiseAmount * _HologramIntensity);
+    const float tintAmount = saturate(_HologramIntensity * 0.65);
+    color.rgb = lerp(color.rgb, color.rgb * (1 + _HologramColor.rgb * 0.45) + _HologramColor.rgb * 0.08 * color.a, tintAmount);
+
+    const float2 rgbOffset = edge_texel_size() * (2 + 10 * rgbAmount);
+    const float2 shiftedUvR = uv + rgbOffset;
+    const float2 shiftedUvB = uv - rgbOffset;
+    const half4 shiftedR = uieffect_frag(IN, shiftedUvR) * UIEFFECT_UV_MASK(shiftedUvR, uvMask);
+    const half4 shiftedB = uieffect_frag(IN, shiftedUvB) * UIEFFECT_UV_MASK(shiftedUvB, uvMask);
+    const half3 shifted = half3(shiftedR.r, color.g, shiftedB.b);
+    color.rgb = lerp(color.rgb, shifted, saturate(rgbAmount * _HologramIntensity));
+    color.rgb *= scanFactor * flicker;
+    color.a *= saturate(lerp(1, flicker, noiseAmount * _HologramIntensity));
+    #endif
+    return color;
+}
+
+float inner_glow_factor(const float2 uv, const float4 uvMask)
+{
+    #if INNER_GLOW_EFFECT
+    const float2 d = edge_texel_size() * lerp(1, 16, saturate((_InnerGlowSize - 0.25) / 7.75));
+    const float center = unishade_sample_alpha(uv, uvMask);
+    float neighbor = 1;
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(1, 0), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(-1, 0), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(0, 1), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(0, -1), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(0.707, 0.707), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(-0.707, 0.707), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(0.707, -0.707), uvMask));
+    neighbor = min(neighbor, unishade_sample_alpha(uv + d * float2(-0.707, -0.707), uvMask));
+    return saturate(center - neighbor) * step(0.01, center);
+    #else
+    return 0;
+    #endif
+}
+
+float outer_glow_factor(const float2 uv, const float4 uvMask)
+{
+    #if OUTER_GLOW_EFFECT
+    const float sourceAlpha = unishade_sample_alpha(uv, uvMask);
+    const float2 texel = edge_texel_size();
+    const float radius = max(_OuterGlowSize, 0.25);
+    const float softnessExponent = lerp(2.0, 0.5, saturate(_OuterGlowSoftness));
+    float glow = 0;
+
+    // Multiple rings and directions produce a smoother silhouette than a single
+    // four/eight-neighbour outline while keeping the effect atlas-safe.
+    [unroll]
+    for (int ring = 1; ring <= 4; ring++)
+    {
+        const float ringRadius = radius * (float)ring / 4.0;
+        const float falloff = pow(saturate(1.0 - ringRadius / radius), softnessExponent);
+        float ringAlpha = 0;
+        [unroll]
+        for (int direction = 0; direction < 16; direction++)
+        {
+            const float angle = UNITY_PI * 2.0 * (float)direction / 16.0;
+            const float2 offset = float2(cos(angle), sin(angle)) * texel * ringRadius;
+            ringAlpha = max(ringAlpha, unishade_sample_alpha(uv + offset, uvMask));
+        }
+        glow = max(glow, ringAlpha * falloff);
+    }
+
+    // Keep the glow outside the opaque silhouette. Partial alpha naturally
+    // produces a soft antialiased transition at the sprite contour.
+    return saturate(glow * (1.0 - saturate(sourceAlpha)));
+    #else
+    return 0;
+    #endif
+}
+
+half4 uieffect_internal(UIEFFECT_FRAG_STRUCT IN, float2 uv, float4 uvMask, const float2 uvLocal, const float2 uvGrad, const float isShadow)
+{
+    const half alpha = transition_alpha(uvLocal);
+    const float edgeFactor = edge(uv, uvMask, _EdgeWidth);
+    uv += move_transition_filter(uvMask, alpha);
+    half4 color = apply_sampling_filter(IN, uv, uvMask, isShadow);
+#if TEXTURE_BLEND
+    color = apply_texture_blend(color, uvLocal, IN.vertexColor.rgb);
+#endif
+    color = apply_gradation_filter(color, uvGrad);
+    color = apply_tone_filter(color);
+    color = apply_transition_filter(color, alpha, uvLocal, edgeFactor);
+    color = apply_detail_filter(color, uvLocal);
+    color = apply_hologram_filter(color, IN, uv, uvMask, uvLocal);
+
+    #if INNER_GLOW_EFFECT
+    {
+        const half glow = inner_glow_factor(uv, uvMask) * _InnerGlowIntensity;
+        color.rgb += _InnerGlowColor.rgb * glow * color.a;
+    }
+    #endif
+
+    half4 result;
+    if (0 < isShadow)
+    {
+        result = apply_color_filter(_ShadowColorFilter, color, _ShadowColor, 1, _ShadowColorGlow);
+    }
+    else
+    {
+        #if EDGE_PLAIN || EDGE_SHINY
+        {
+            color = apply_color_filter(_ColorFilter, color, _ColorValue, _ColorIntensity, _ColorGlow);
+            const half4 edgeColor = apply_color_filter(_EdgeColorFilter, color, _EdgeColor, 1, _EdgeColorGlow);
+            const float isEdgeShiny = is_edge_shiny(uvLocal);
+            result = lerp(color, edgeColor, edgeFactor * isEdgeShiny);
+        }
+        #else
+        {
+            result = apply_color_filter(_ColorFilter, color, _ColorValue, _ColorIntensity, _ColorGlow);
+        }
+        #endif
+    }
+
+    #if OUTER_GLOW_EFFECT
+    if (isShadow < 0.5)
+    {
+        const half glowAlpha = saturate(outer_glow_factor(uv, uvMask) * _OuterGlowIntensity * _OuterGlowColor.a);
+        result.rgb += _OuterGlowColor.rgb * glowAlpha;
+        result.a = max(result.a, glowAlpha);
+    }
+    #endif
+
+    return apply_dither_filter(result, IN.screenPosition);
+}
+
+half4 uieffect(half4 origin, float2 uv, float4 uvMask, float4 wpos, UIEFFECT_FRAG_STRUCT IN)
+{
+    #ifdef NO_UIEFFECT
+    return origin;
+    #endif
+
+    #if !defined(UNISHADE_LOCAL_UV)
+        #ifndef CANVAS_SHADERGRAPH
+        wpos = mul(unity_ObjectToWorld, wpos);
+        #endif
+
+        #if !UIEFFECT_EDITOR
+        wpos = mul(_CanvasToWorldMatrix, wpos);
+        #endif
+    #endif
+    const half rate = get_target_rate(origin.rgb);
+    float2 uvLocal = saturate(mul(_RootViewMatrix, wpos)).xy;
+    float2 uvGrad = mul(_GradViewMatrix, wpos).xy;
+
+    // Mirror
+    if (uvMask.x < -3)
+    {
+        uvLocal = saturate(mul(_MirrorRootViewMatrix, wpos)).xy;
+        uvGrad = saturate(mul(_MirrorGradViewMatrix, wpos)).xy;
+        uvMask.x += 4;
+    }
+
+    const float isShadow = uvMask.x < -1 ? 1 : 0;
+    uvMask.x += isShadow * 2;
+    uv = apply_distortion_filter(uv, uvMask, uvLocal);
+    uv = apply_glitch_filter(uv, uvMask, uvLocal);
+
+    // Sampling.Pixelation
+    #if SAMPLING_PIXELATION
+    {
+        const half2 pixelSize = max(2, (1 - lerp(0.5, 0.95, _SamplingIntensity)) / texel_size());
+        uv = round(uv * pixelSize) / pixelSize;
+    }
+    // Sampling.RgbShift
+    #elif SAMPLING_RGB_SHIFT
+    {
+        const half2 offset = half2(_SamplingIntensity * texel_size().x * 20, 0);
+        const half2 r = uieffect_internal(IN, uv + offset, uvMask, uvLocal, uvGrad, isShadow).ra;
+        const half2 g = uieffect_internal(IN, uv, uvMask, uvLocal, uvGrad, isShadow).ga;
+        const half2 b = uieffect_internal(IN, uv - offset, uvMask, uvLocal, uvGrad, isShadow).ba;
+        return half4(r.x * r.y, g.x * g.y, b.x * b.y, (r.y + g.y + b.y) / 3);
+    }
+    // Sampling.EdgeLuminance/EdgeAlpha
+    #elif SAMPLING_EDGE_LUMINANCE || SAMPLING_EDGE_ALPHA
+    {
+        // Pixel size
+        const float2 d = texel_size() * _SamplingWidth;
+
+        // Pixel values around the current pixel (3x3, 8 neighbors)
+        const half v00 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(-d.x, -d.y)), uvMask));
+        const half v01 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(-d.x, 0.0)), uvMask));
+        const half v02 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(-d.x, +d.y)), uvMask));
+        const half v10 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(0.0, -d.y)), uvMask));
+        const half v12 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(0.0, +d.y)), uvMask));
+        const half v20 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(+d.x, -d.y)), uvMask));
+        const half v21 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(+d.x, 0.0)), uvMask));
+        const half v22 = to_value(UIEFFECT_SAMPLE_CLAMP(IN, (uv + half2(+d.x, +d.y)), uvMask));
+
+        // Apply Sobel operator
+        half sobel_h = v00 * -1.0 + v01 * -2.0 + v02 * -1.0 + v20 * 1.0 + v21 * 2.0 + v22 * 1.0;
+        half sobel_v = v00 * -1.0 + v10 * -2.0 + v20 * -1.0 + v02 * 1.0 + v12 * 2.0 + v22 * 1.0;
+
+        const half sobel = sqrt(sobel_h * sobel_h + sobel_v * sobel_v) * _SamplingIntensity;
+        return lerp(half4(0, 0, 0, 0), uieffect_internal(IN, uv, uvMask, uvLocal, uvGrad, isShadow), inv_lerp(0.5, 1, sobel));
+    }
+    #endif
+
+    return lerp(origin, uieffect_internal(IN, uv, uvMask, uvLocal, uvGrad, isShadow), rate);
+}
+
+
+half4 uieffect(float2 uv, float4 uvMask, float4 wpos, UIEFFECT_FRAG_STRUCT IN)
+{
+    uv = apply_scroll_texture(uv, uvMask);
+    uv = apply_hand_drawn(uv, uvMask);
+    const half4 origin = UIEFFECT_SAMPLE_CLAMP(IN, uv, uvMask);
+    return uieffect(origin, uv, uvMask, wpos, IN);
+}
+
+#endif // UI_EFFECT_INCLUDED

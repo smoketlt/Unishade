@@ -1,0 +1,20 @@
+{
+  "name": "com.smoketlt.unishade",
+  "version": "1.0.0",
+  "displayName": "Unishade",
+  "description": "Shader effects for SpriteRenderer and MeshRenderer with a typed runtime API.",
+  "unity": "6000.0",
+  "author": {
+    "name": "Mike Fedorov",
+    "email": "smoketlt@gmail.com"
+  },
+  "keywords": [
+    "unity",
+    "shader",
+    "sprite",
+    "sprite-renderer",
+    "mesh-renderer",
+    "effects"
+  ],
+  "documentationUrl": "https://github.com/smoketlt/Unishade/tree/unishade-1.0/Assets/Unishade"
+}
