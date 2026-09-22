@@ -1,6 +1,6 @@
 {
   "name": "com.smoketlt.unishade",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Unishade",
   "description": "Shader effects for SpriteRenderer and MeshRenderer with a typed runtime API.",
   "unity": "6000.0",

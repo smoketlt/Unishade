@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Unishade.Editor
 {
-    [CustomEditor(typeof(Unishade), true)]
+    [CustomEditor(typeof(global::Unishade.Unishade), true)]
     public sealed class UnishadeEditor : UnityEditor.Editor
     {
         private SerializedProperty rendererMode;

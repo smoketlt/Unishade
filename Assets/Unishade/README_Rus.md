@@ -8,7 +8,7 @@
 https://github.com/smoketlt/Unishade.git?path=/Assets/Unishade#unishade-1.0
 ```
 
-Имя пакета: `com.smoketlt.unishade`. Версия пакета: `1.0.0`.
+Имя пакета: `com.smoketlt.unishade`. Версия пакета: `1.0.1`.
 
 ## Быстрый старт
 

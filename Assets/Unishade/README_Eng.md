@@ -8,7 +8,7 @@ In Unity, open `Window > Package Manager`, click `+`, choose `Add package from g
 https://github.com/smoketlt/Unishade.git?path=/Assets/Unishade#unishade-1.0
 ```
 
-The package name is `com.smoketlt.unishade` and the package version is `1.0.0`.
+The package name is `com.smoketlt.unishade` and the package version is `1.0.1`.
 
 **## Quick Start**
 
@@ -82,4 +82,3 @@ public sealed class CharacterEffects : MonoBehaviour
 ```
 
 Changing a property automatically applies it to the renderer. The API covers renderer, animation, tone, color, sampling, transition, target, blending, gradient, edge, detail, distortion, dither, vertex shake, scrolling texture, hand-drawn motion, hologram, glitch, inner glow and outer glow. Texture layers are available through `unishade.Blending.Green`, `unishade.Blending.Blue` and `unishade.Blending.White`.
-
